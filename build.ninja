@@ -1,0 +1,6 @@
+rule win_os_inside_cs
+    command = c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe $file_type $cs-flags -out:$out $in
+
+build kgi_trade_daemon.exe : win_os_inside_cs kgi_trade_daemon.cs
+        cs-flags = -warn:4
+
