@@ -3,19 +3,25 @@ import socket
 import time
 
 def main() :
-    if len(sys.argv) != 2 :
-        return -1
-
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("127.0.0.1", 44444))
 
+    send_buf1 = bytearray(2);
+
+    send_buf1[0] = 0 #Buy
+#   send_buf1[0] = 1 #Sell
+
+#   send_buf1[1] = 0 #TX
+    send_buf1[1] = 1 #MTX
+
+#   send_buf2 = (17000).to_bytes(4, "little") #limit order
+    send_buf2 = (0xffffffff).to_bytes(4, "little") #market order
+
+    send_buf = send_buf1 + send_buf2;
     while True :
-        s.send(sys.argv[1].encode('ascii'))
-        back_buffer = s.recv(1024)
-        back = back_buffer.decode('ascii')
-        print(f"back -> {back}");
-        if sys.argv[1] != back :
-            return -1
+        s.send(send_buf)
+        recv_buf = s.recv(1)
+        print(f"back -> {recv_buf}");
         time.sleep(2)
 
 

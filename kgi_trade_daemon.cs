@@ -2,31 +2,48 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Text;
 
 public class ServiceBody
 {
 	private Socket ConnectSocket;
 	private Thread ServeThread;
 
+	//CommandDate[0] : 0 buy, 1 sell
+	//CommandData[1] : 0 TX, 1 MTX
+	//CommandData[2~4] : price, little endian, 0xffffffff(a.k.a -1) is market order
+	private byte ExecCommandStr(byte[] CommandData)
+	{
+		int k;
+
+		k = BitConverter.ToInt32(CommandData, 2);
+		Console.WriteLine("1:" + CommandData[0].ToString());
+		Console.WriteLine("2:" + CommandData[1].ToString());
+		Console.WriteLine("3: {0:X}", k);
+		return 0;
+	}
+
 	private void ThreadProc()
 	{
-		byte[] buffer = new byte[128];
+		Encoding ascii = Encoding.ASCII;
+		byte[] RecvBuffer = new byte[6];
+		byte[] Ret = new byte[1];
 		int len;
 
 		while(true)
 		{
-			len = ConnectSocket.Receive(buffer);
-			Console.WriteLine("get data len: " + len.ToString());
+			len = ConnectSocket.Receive(RecvBuffer);
 			if (len != 0)
 			{
-				ConnectSocket.Send(buffer, len, SocketFlags.None);
-				continue;
+				Console.WriteLine("*** receive length {0} bytes", len);
+				Ret[0] = ExecCommandStr(RecvBuffer);
+				ConnectSocket.Send(Ret, 1, SocketFlags.None);
+			} else {
+				ConnectSocket.Shutdown(SocketShutdown.Both);
+				ConnectSocket.Close();
+				Console.WriteLine("Socket Closed");
+				return;
 			}
-
-			ConnectSocket.Shutdown(SocketShutdown.Both);
-			ConnectSocket.Close();
-			Console.WriteLine("Socket Closed");
-			return;
 		}
 	}
 
