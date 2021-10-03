@@ -149,6 +149,16 @@ public class KgiTradeApi
 	public void Logout()
 	{
 	}
+
+	public void Order(byte BuySell, byte ContractId, ushort Amount, int Price)
+	{
+		string OMsg = String.Format("Order() {0},{1},{2},{3}",
+					    BuySell == 0 ? "Buy" : "Sell",
+					    ContractId == 0 ? "TX" : "MTX",
+					    Amount,
+					    Price);
+		TradeApiLog(OMsg);
+	}
 }
 
 public class ServiceBody
@@ -159,31 +169,33 @@ public class ServiceBody
 
 	//CommandDate[0] : 0 buy, 1 sell
 	//CommandData[1] : 0 TX, 1 MTX
-	//CommandData[2~4] : price, little endian, 0xffffffff(a.k.a -1) is market order
+	//CommandData[2] : order amount
+	//CommandData[3~6] : price, little endian, 0xffffffff(a.k.a -1) is market order
 	private byte ExecCommandStr(byte[] CommandData)
 	{
-		int k;
+		ushort Amount = (ushort) CommandData[2];
+		int Price = BitConverter.ToInt32(CommandData, 3);
 
-		k = BitConverter.ToInt32(CommandData, 2);
-		Console.WriteLine("1:" + CommandData[0].ToString());
-		Console.WriteLine("2:" + CommandData[1].ToString());
-		Console.WriteLine("3: {0:X}", k);
+		//Console.WriteLine("1:" + CommandData[0].ToString());
+		//Console.WriteLine("2:" + CommandData[1].ToString());
+		//Console.WriteLine("3: {0:X}", amount);
+		//Console.WriteLine("4: {0:X}", price);
+		ApiRef.Order(CommandData[0], CommandData[1], Amount, Price);
 		return 0;
 	}
 
 	private void ThreadProc()
 	{
-		Encoding ascii = Encoding.ASCII;
-		byte[] RecvBuffer = new byte[6];
+		byte[] RecvBuffer = new byte[7];
 		byte[] Ret = new byte[1];
-		int len;
+		int Len;
 
 		while(true)
 		{
-			len = ConnectSocket.Receive(RecvBuffer);
-			if (len != 0)
+			Len = ConnectSocket.Receive(RecvBuffer);
+			if (Len != 0)
 			{
-				Console.WriteLine("*** receive length {0} bytes", len);
+				Console.WriteLine(String.Format("*** receive length {0} bytes", Len));
 				Ret[0] = ExecCommandStr(RecvBuffer);
 				ConnectSocket.Send(Ret, 1, SocketFlags.None);
 			} else {
